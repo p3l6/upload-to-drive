@@ -1,35 +1,11 @@
 **A fork of [Jodebu/upload-to-drive](https://github.com/Jodebu/upload-to-drive).**
 
-## Changes:
-- Adds `fileLink` output parameter.
+## Changes from fork:
 - Accepts glob for input files
+- Sends every file individually instead of zipping.
 
 # Upload to Google Drive
-This is a **GitHub action** to upload a file or a folder (zipped) to **Google Drive** using a Google Service Account.
-
-## Table of Contents
-- [Changes](#changes)
-- [Setup](#setup)
-    - [Google Service Account (GSA)](#google-service-account-(GSA))
-    - [Share Drive folder with the GSA](#share-drive-folder-with-the-GSA)
-    - [Store credentials as GitHub secrets](#store-credentials-as-github-secrets)
-- [Inputs](#inputs)
-    - [`credentials`](#credentials)
-    - [`folder`](#folder)
-    - [`target`](#target)
-    - [`name`](#name)
-- [Outputs](#outputs)
-    - [`link`](#link)
-- [Usage Examples](#usage-examples)
-    - [Simple file workflow example](#simple-file-workflow-example)
-    - [Simple folder workflow example](#simple-folder-workflow-example)
-    - [Simple link workflow example](#simple-link-workflow-example)
-    - [Complex workflow example](#complex-workflow-example)
-- [Documentation](#documentation)
-
-## Changes
-### v1.1
-Added an output with a link to the Drive folder.
+This is a **GitHub action** to upload a file(s) to **Google Drive** using a Google Service Account.
 
 ## Setup
 This section lists the requirements to make this action work and how to meet them.
@@ -59,7 +35,7 @@ While you are here, take a note of **the folder's ID**, the long set of characte
 
 ### Store credentials as GitHub secrets
 This action needs your GSA credentials to properly authenticate with Google and we don't want anybody to take a peek at them, right? Go to the **Secrets** section of your repo and add a new secret for your credentials. As per GitHub's recommendation, we will store any complex data (like your fancy JSON credentials) as a base64 encoded string.
-You can encode jour `.json` file easily into a new `.txt` file using any bash terminal (just don't forget to change the placeholders with the real name of your credentials file and and the desired output):
+You can encode your `.json` file easily into a new `.txt` file using any bash terminal (just don't forget to change the placeholders with the real name of your credentials file and and the desired output):
 ```bash
 $ base64 CREDENTIALS_FILENAME.json > ENCODED_CREDENTIALS_FILENAME.txt
 ```
@@ -83,14 +59,7 @@ The ID of the Google Drive folder you want to upload to.
 ### `target`
 Required: **YES**
 The glob pattern for the file(s) to upload.
->If multiple files are matched, they will be zipped before upload.
-
-### `name`
-Required: **NO**
-Default: `null`
-The name you want your zip file to have.
->- If the `target` input is a file, this input will be ignored.
->- If not provided, it will default to the folder's name.
+>This glob should only match files, not folders.
 
 ## Outputs
 This section lists all outputs this action produces.
@@ -99,21 +68,18 @@ A link to the Drive folder.
 ### `link`
 A link to the Drive folder.
 
-### `fileLink`
-A direct link to the uploaded file.
-
 ## Usage Examples
 This section contains some useful examples.
 
 ### Simple usage file workflow example
-This a very simple workflow example that checks out the repo and uploads the `README.md` file to a Google Drive folder every time there is a push to master.
+This a very simple workflow example that checks out the repo and uploads all `*.md` files to a Google Drive folder every time there is a push to master.
 ```yaml
-name: Store readme in Drive
+name: Store markdown in Drive
 on:
   push: { branches: [master] }
 jobs:
   buildAndTestForSomePlatforms:
-    name: Upload readme to drive
+    name: Upload markdown to drive
     runs-on: ubuntu-latest
     steps:
       # Checkout
@@ -121,139 +87,9 @@ jobs:
         uses: actions/checkout@v2
       # Upload to Drive
       - name: Upload README.md to Google Drive
-        uses: Jodebu/upload-to-drive@master
+        uses: p3l6/upload-to-drive@main
         with:
-          target: README.md
+          target: "*.md"
           credentials: secrets.<YOUR_DRIVE_CREDENTIALS>
           folder: <YOUR_DRIVE_FOLDER_ID>
 ```
-
-### Simple folder workflow example
-This a very simple workflow example that checks out the repo and uploads the `public` folder as a zip file to a Drive folder every time there is a push to master.
-```yaml
-name: Store public in Drive
-on:
-  push: { branches: [master] }
-jobs:
-  buildAndTestForSomePlatforms:
-    name: Upload public to drive
-    runs-on: ubuntu-latest
-    steps:
-      # Checkout
-      - name: Checkout repository
-        uses: actions/checkout@v2
-      # Upload to Drive
-      - name: Upload public folder to Google Drive
-        uses: Jodebu/upload-to-drive@master
-        with:
-          target: public
-          credentials: secrets.<YOUR_DRIVE_CREDENTIALS>
-          folder: <YOUR_DRIVE_FOLDER_ID>
-```
-
-### Simple link workflow example
-This a very simple workflow example that checks out the repo and uploads the `public` folder as a zip file to a Drive folder every time there is a push to master. After that, it sends a Telegram message using [Telegram Message Notify](https://github.com/marketplace/actions/telegram-message-notify) with a link to the folder.
-```yaml
-name: Store public in Drive
-on:
-  push: { branches: [master] }
-jobs:
-  buildAndTestForSomePlatforms:
-    name: Upload public to drive
-    runs-on: ubuntu-latest
-    steps:
-      # Checkout
-      - name: Checkout repository
-        uses: actions/checkout@v2
-      # Upload to Drive
-      - name: Upload public folder to Google Drive
-        uses: Jodebu/upload-to-drive@master
-        id: driveUpload
-        with:
-          target: public
-          credentials: secrets.<YOUR_DRIVE_CREDENTIALS>
-          folder: <YOUR_DRIVE_FOLDER_ID>
-      # Send Telegram message
-      - name: Send link to file
-        uses: appleboy/telegram-action@master
-        with:
-            to: ${{ secrets.TELEGRAM_TO }}
-            token: ${{ secrets.TELEGRAM_TOKEN }}
-            message: File uploaded to ${{ steps.driveUpload.outputs.link }}
-```
-
-### Complex workflow example
-This is a little bit more complex workflow example. This is actually a simplified version of the current workflow that I use in my unity projects to test, compile, and upload several platform builds at a time.
-```yaml
-name: Dev build
-on:
-  push: { branches: [develop] }
-env:
-  UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
-
-jobs:
-  buildAndTestForSomePlatforms:
-    name: Build for ${{ matrix.targetPlatform }} on version ${{ matrix.unityVersion }}
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        projectPath:
-          - test-project
-        unityVersion:
-          - 2019.3.14f1
-        targetPlatform:
-          - StandaloneOSX
-          - StandaloneWindows64
-          - StandaloneLinux64
-    steps:
-
-      # Checkout
-      - name: Checkout repository
-        uses: actions/checkout@v2
-        with:
-          lfs: true
-
-      # Cache
-      - uses: actions/cache@v1.1.0
-        with:
-          path: ${{ matrix.projectPath }}/Library
-          key: Library-${{ matrix.projectPath }}-${{ matrix.targetPlatform }}
-          restore-keys: |
-            Library-${{ matrix.projectPath }}-
-            Library-
-
-      # Test
-      - name: Run tests
-        uses: webbertakken/unity-test-runner@v1.3
-        id: testRunner
-        with:
-          projectPath: ${{ matrix.projectPath }}
-          unityVersion: ${{ matrix.unityVersion }}
-
-      # Upload test results
-      - uses: actions/upload-artifact@v1
-        with:
-          name: Test results (all modes)
-          path: ${{ steps.testRunner.outputs.artifactsPath }}
-
-      # Build
-      - name: Build projects
-        uses: webbertakken/unity-builder@v0.10
-        with:
-          projectPath: ${{ matrix.projectPath }}
-          unityVersion: ${{ matrix.unityVersion }}
-          targetPlatform: ${{ matrix.targetPlatform }}
-          buildName: ${{ secrets.APP_NAME }}
-
-      # Upload to Drive
-      - name: Upload build to Google Drive
-        uses: Jodebu/upload-to-drive@master
-        with:
-          target: build
-          name: ${{ matrix.targetPlatform }}
-          credentials: ${{ secrets.DRIVE_CREDENTIALS }}
-          folder: ${{ secrets.DRIVE_FOLDER }}
-```
-## Documentation
-A simple auto-generated documentation can be found [here](https://jodebu.github.io/upload-to-drive/docs).
