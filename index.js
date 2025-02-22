@@ -45,7 +45,7 @@ async function uploadToDrive(name, path) {
         body: fs.createReadStream(path),
       },
     });
-    actions.info(`File uploaded successfully: ${resultLink}`);
+    actions.info(`File uploaded successfully: ${name}`);
   } catch (e) {
     actions.error(`Upload failed: ${e}`);
     throw e;
