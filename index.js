@@ -26,17 +26,17 @@ async function main() {
 
   for (file of allFiles) {
     const filename = file.split("/").pop();
-    uploadToDrive(filename, file);
+    await uploadToDrive(filename, file);
   }
 }
 
 /**
  * Uploads the file to Google Drive
  */
-function uploadToDrive(name, path) {
+async function uploadToDrive(name, path) {
   actions.info(`Uploading file to Google Drive... ${path}`);
-  drive.files
-    .create({
+  try {
+    await drive.files.create({
       requestBody: {
         name,
         parents: [folder],
@@ -44,14 +44,12 @@ function uploadToDrive(name, path) {
       media: {
         body: fs.createReadStream(path),
       },
-    })
-    .then((res) => {
-      actions.info(`File uploaded successfully: ${resultLink}`);
-    })
-    .catch((e) => {
-      actions.error("Upload failed");
-      throw e;
     });
+    actions.info(`File uploaded successfully: ${resultLink}`);
+  } catch (e) {
+    actions.error(`Upload failed: ${e}`);
+    throw e;
+  }
 }
 
 main().catch((e) => actions.setFailed(e));
