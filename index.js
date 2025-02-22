@@ -23,28 +23,45 @@ async function main() {
   actions.setOutput(link, driveLink);
 
   const allFiles = glob.sync(target);
+  const driveFiles = await listDriveFolder();
+
+  for (file of driveFiles) {
+    actions.info(`${file.name} already exists at ${file.id}`);
+  }
 
   for (file of allFiles) {
     const filename = file.split("/").pop();
-    await uploadToDrive(filename, file);
+
+    const existingItem = driveFiles.find((df) => df.name === filename);
+
+    await uploadToDrive(filename, file, existingItem.id);
   }
+}
+
+async function listDriveFolder() {
+  const { files } = await drive.files.list({ q: `'${folder}' in parents and trashed = false` });
+  // TODO:  return a Map
+  return files.map((f) => ({ name: f.name, id: f.id }));
 }
 
 /**
  * Uploads the file to Google Drive
  */
-async function uploadToDrive(name, path) {
+async function uploadToDrive(name, path, existingItemId) {
   actions.info(`Uploading file to Google Drive... ${path}`);
   try {
-    await drive.files.create({
-      requestBody: {
-        name,
-        parents: [folder],
-      },
-      media: {
-        body: fs.createReadStream(path),
-      },
-    });
+    if (existingItemId) {
+    } else {
+      await drive.files.create({
+        requestBody: {
+          name,
+          parents: [folder],
+        },
+        media: {
+          body: fs.createReadStream(path),
+        },
+      });
+    }
     actions.info(`File uploaded successfully: ${name}`);
   } catch (e) {
     actions.error(`Upload failed: ${e}`);
