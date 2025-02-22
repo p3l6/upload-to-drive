@@ -25,6 +25,7 @@ async function main() {
   const allFiles = glob.sync(target);
   const driveFiles = await listDriveFolder();
 
+  // TODO: remove
   for (file of driveFiles) {
     actions.info(`${file.name} already exists at ${file.id}`);
   }
@@ -39,7 +40,9 @@ async function main() {
 }
 
 async function listDriveFolder() {
-  const { files } = await drive.files.list({ q: `'${folder}' in parents and trashed = false` });
+  const result = await drive.files.list({ q: `'${folder}' in parents and trashed = false` });
+  actions.info(`List Api result: ${files}`);
+  const files = result.files;
   // TODO:  return a Map
   return files.map((f) => ({ name: f.name, id: f.id }));
 }
@@ -51,6 +54,7 @@ async function uploadToDrive(name, path, existingItemId) {
   actions.info(`Uploading file to Google Drive... ${path}`);
   try {
     if (existingItemId) {
+      // TODO: modify the item with new content
     } else {
       await drive.files.create({
         requestBody: {
