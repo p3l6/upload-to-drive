@@ -37,7 +37,7 @@ While you are here, take a note of **the folder's ID**, the long set of characte
 This action needs your GSA credentials to properly authenticate with Google and we don't want anybody to take a peek at them, right? Go to the **Secrets** section of your repo and add a new secret for your credentials. As per GitHub's recommendation, we will store any complex data (like your fancy JSON credentials) as a base64 encoded string.
 You can encode your `.json` file easily into a new `.txt` file using any bash terminal (just don't forget to change the placeholders with the real name of your credentials file and and the desired output):
 ```bash
-$ base64 CREDENTIALS_FILENAME.json > ENCODED_CREDENTIALS_FILENAME.txt
+$ base64 -i CREDENTIALS_FILENAME.json > ENCODED_CREDENTIALS_FILENAME.txt
 ```
 The contents of the newly generated `.txt` file is what we have to procure as a value for our secret.
 
@@ -90,6 +90,6 @@ jobs:
         uses: p3l6/upload-to-drive@main
         with:
           target: "*.md"
-          credentials: secrets.<YOUR_DRIVE_CREDENTIALS>
-          folder: <YOUR_DRIVE_FOLDER_ID>
+          credentials: ${{ secrets.<YOUR_DRIVE_CREDENTIALS> }}
+          folder: ${{ secrets.<YOUR_DRIVE_FOLDER_ID> }}
 ```
