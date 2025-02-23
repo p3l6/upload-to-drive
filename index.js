@@ -41,7 +41,7 @@ async function main() {
 
 async function listDriveFolder() {
   const result = await drive.files.list({ q: `'${folder}' in parents and trashed = false` });
-  actions.info(`List Api result: ${result}`);
+  actions.info(`List Api result: ${JSON.stringify(result)}`);
   const files = result.files;
   // TODO:  return a Map
   return files.map((f) => ({ name: f.name, id: f.id }));
